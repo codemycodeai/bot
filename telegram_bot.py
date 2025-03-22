@@ -1,14 +1,11 @@
 import os
 import logging
 import requests
-import threading
-import time
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, ConversationHandler, MessageHandler, filters
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from flask import Flask
 
 # Load environment variables
 load_dotenv()
@@ -35,35 +32,6 @@ TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 client = MongoClient(MONGO_URI)
 db = client[DB_NAME]
 collection = db[COLLECTION_NAME]
-
-# Create a Flask app for web server
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "Telegram Bot is running!"
-
-@app.route('/health')
-def health_check():
-    return "Health check OK", 200
-
-def run_flask():
-    """Run the Flask app on a separate thread"""
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
-
-def keep_alive():
-    """Function to keep the bot alive by pinging itself."""
-    app_url = os.getenv('APP_URL', 'http://localhost:8080/health')
-    while True:
-        try:
-            response = requests.get(app_url)
-            logger.info(f"Keep-alive ping sent. Status: {response.status_code}")
-        except Exception as e:
-            logger.error(f"Keep-alive ping failed: {e}")
-        # Sleep for 14 minutes (840 seconds)
-        # Most free tiers timeout after 15 minutes
-        time.sleep(840)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Send a message when the command /start is issued."""
@@ -332,13 +300,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 def main() -> None:
-    """Start the bot and web server."""
-    # Start Flask in a separate thread
-    threading.Thread(target=run_flask, daemon=True).start()
-    
-    # Start keep-alive mechanism in a separate thread
-    threading.Thread(target=keep_alive, daemon=True).start()
-    
+    """Start the bot."""
     # Create the Application
     application = Application.builder().token(TOKEN).build()
     
