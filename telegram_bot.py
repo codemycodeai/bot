@@ -331,8 +331,14 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     return ConversationHandler.END
 
-def run_bot():
-    """Start the bot."""
+def main() -> None:
+    """Start the bot and web server."""
+    # Start Flask in a separate thread
+    threading.Thread(target=run_flask, daemon=True).start()
+    
+    # Start keep-alive mechanism in a separate thread
+    threading.Thread(target=keep_alive, daemon=True).start()
+    
     # Create the Application
     application = Application.builder().token(TOKEN).build()
     
@@ -352,19 +358,6 @@ def run_bot():
     
     # Start the Bot
     application.run_polling()
-
-def main():
-    """Decide whether to run Flask or the Telegram bot based on the process type."""
-    # Check if we're running as the web process or worker process
-    if os.environ.get('PROCESS_TYPE') == 'web':
-        # Just run Flask for the web process
-        port = int(os.environ.get('PORT', 8080))
-        app.run(host='0.0.0.0', port=port)
-    else:
-        # Start the keep-alive thread
-        threading.Thread(target=keep_alive, daemon=True).start()
-        # Run the bot for the worker process
-        run_bot()
 
 if __name__ == '__main__':
     main()
