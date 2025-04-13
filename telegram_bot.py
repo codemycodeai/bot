@@ -322,8 +322,8 @@ def keep_alive():
     while True:
         try:
             # Make a request to the health endpoint
-            requests.get(f"{APP_URL}/health")
-            logger.info(f"Keep-alive ping sent to {APP_URL}/health")
+            requests.get(f"https://bot-yjrr.onrender.com/health")
+            logger.info(f"Keep-alive ping sent to https://bot-yjrr.onrender.com/health")
         except Exception as e:
             logger.error(f"Keep-alive ping failed: {e}")
         
