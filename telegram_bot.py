@@ -2,13 +2,10 @@ import os
 import logging
 import requests
 from datetime import datetime
-import time
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, ConversationHandler, MessageHandler, filters
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from flask import Flask, request
-from threading import Thread
 
 # Load environment variables
 load_dotenv()
@@ -31,26 +28,11 @@ COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'codemycode')
 # Telegram Bot Token
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
-# App URL (will be set when deployed to Render)
-APP_URL = os.getenv('APP_URL', 'http://localhost:8080')
-
 # Connect to MongoDB
 client = MongoClient(MONGO_URI)
 db = client[DB_NAME]
 collection = db[COLLECTION_NAME]
 
-# Create Flask app
-app = Flask(__name__)
-
-@app.route('/')
-def index():
-    return 'Bot is running!'
-
-@app.route('/health')
-def health():
-    return {'status': 'ok', 'timestamp': datetime.now().isoformat()}, 200
-
-# Configure the Telegram bot
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Send a message when the command /start is issued."""
     user = update.effective_user
@@ -317,21 +299,8 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     return ConversationHandler.END
 
-def keep_alive():
-    """Function to keep the server alive by pinging itself."""
-    while True:
-        try:
-            # Make a request to the health endpoint
-            requests.get(f"https://bot-yjrr.onrender.com/health")
-            logger.info(f"Keep-alive ping sent to https://bot-yjrr.onrender.com/health")
-        except Exception as e:
-            logger.error(f"Keep-alive ping failed: {e}")
-        
-        # Sleep for 14 minutes (less than the 15-minute Render sleep timeout)
-        time.sleep(840)  # 14 minutes = 840 seconds
-
-def run_bot():
-    """Start the bot in a separate thread."""
+def main() -> None:
+    """Start the bot."""
     # Create the Application
     application = Application.builder().token(TOKEN).build()
     
@@ -352,22 +321,5 @@ def run_bot():
     # Start the Bot
     application.run_polling()
 
-def run_flask():
-    """Run the Flask app."""
-    # Get port from environment variable for Render
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
-
 if __name__ == '__main__':
-    # Start the bot in a separate thread
-    bot_thread = Thread(target=run_bot)
-    bot_thread.daemon = True
-    bot_thread.start()
-    
-    # Start the keep-alive mechanism in a separate thread
-    keep_alive_thread = Thread(target=keep_alive)
-    keep_alive_thread.daemon = True
-    keep_alive_thread.start()
-    
-    # Run Flask app in the main thread
-    run_flask()
+    main()
